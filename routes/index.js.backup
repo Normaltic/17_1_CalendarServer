@@ -1,0 +1,81 @@
+var Account = require('./models/account');
+var Group = require('./models/group');
+var Schedule = require('./models/schedule');
+
+
+module.exports = function(app) {
+
+	app.post('/data/account/signin/:Id/:password', function(req, res) {
+
+		Account.findOne({Id: req.params.Id}, function(err, acc) {
+			if( err ) return res.status(400).json({result: 0, error: err});
+			if( acc ) return res.status(401).json({result: 0, error: 'USED_ID'});
+
+			let account = new Account();
+			account.Id = req.params.Id;
+			account.password = req.params.password;
+			if( req.body.name ) account.name = req.body.name;
+			if( req.body.intro ) account.intro = req.body.intro;
+
+			account.save(function(err) {
+				if(err) {
+					console.error(err);
+					return res.json({result: 0, error: err});
+				}
+
+				return res.json({result: 1});
+			});
+		});
+	});
+ 
+	app.get('/data/account/signup/:Id', function(req, res) {
+
+		Account.find({Id: req.params.Id}, function(err, acc) {
+			if( err) return res.status(400).json({result: 0, error: err});
+			if( !acc ) return res.status(401).json({result: 0, error: 'NOT_EXGIST_ID'});
+
+			res.json(acc);
+		});
+	});
+
+	app.post('./data/group/create', function(req, res) {
+
+		Group.findOne({name: req.body.name}, function(err, group) {
+			if( err ) return res.status(400).json({result: 0, error: err});
+			if( acc ) return res.status(401).json({result: 0, error: 'USED_GROUP_NAME'});
+
+			var group = new Group();
+			group.name = req.body.name;
+			group.admin = req.body.admin;
+			if( req.body.intro ) group.intro = req.body.intro;
+			group.member = req.body.member;
+
+			group.save( function(err) {
+				if(err) {
+					console.error(err);
+					return res.json({result: 0, error: err});
+				}
+			});
+
+			return res.json({result: 1});
+		});
+	});
+
+	app.get('./data/group/get', function(req, res) {
+		
+		Group.find({name: req.body.name}, function(err, group) {
+			if( err ) return res.status(400).json({result: 0, error: err});
+			if( !group ) return res.status(401).json({result: 0, error: 'NOT_EXGIST_GROUP'});
+
+			res.json(group);
+		});
+	});
+
+	app.put('./data/group/addmember', function(req, res) {
+
+		Group.find({name: req.body.name}, function(err, group) {
+			if( err ) return res.status(400).json({result: 0, error: err});
+			if( !group ) return res.status(401).json({result: 0, error: 'NOT_EXGIST_GROUP'});
+		});
+	});
+}
