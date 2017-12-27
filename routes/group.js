@@ -34,6 +34,29 @@ router.post('/create', (req, res) => {
 	})
 });
 
+router.get('/getGroupList', (req,res) => {
+
+	Account.findOneByUserId(req.decoded.ID)
+	.then( (user) => {
+		if( user ) {
+			return res.json({
+				result: 1,
+				groupList: user.groups
+			});
+		} else {
+			return res.json({
+				result: 0
+			});
+		}
+	})
+	.catch( (err) => {
+		console.warn(err);
+		return res.json({
+			result: 0
+		});
+	});
+});
+
 router.post('/getMonthSchedules', (req, res) => {
 	
 	let { groupName, year, month, } = req.body;
@@ -64,13 +87,95 @@ router.post('/getMonthSchedules', (req, res) => {
 	});
 })
 
+router.get('/getGroupData/:groupName', (req, res) => {
+
+	Group.findByName(req.params.groupName)
+	.then( (grp) => {
+		console.log(grp);
+		if( !grp ) return Promise.reject('NOT_EXIST_GROUP');
+		return Promise.resolve(grp);
+	})
+	.then( (grp) => {
+		return res.json({
+			result: 1,
+			groupData: grp
+		});
+	})
+	.catch( (err) => {
+		return res.json({
+			result: 0,
+			error: err
+		});
+	});
+});
+
+router.post('/updateGroupData', (req, res) => {
+
+	Group.findByName(req.body.name)
+	.then( (grp) => {
+		if( !grp ) return Promise.reject('NOT_EXIST_GROUP');
+		if( req.decoded.ID != grp.master ) return Promise.reject('PERMISSION_DENIED');
+		return Promise.resolve(grp);
+	})
+	.then( (grp) => {
+		return Promise.all([
+			Account.findAndDeleteGroup.bind(Account)(grp),
+			Group.update(
+				{ name: req.body.name },
+				{
+					members: req.body.members,
+					description: req.body.description
+				}
+			)]);
+	})
+	.then( (result) => {
+		return Account.findAndUpdateGroup.bind(Account)(req.body);
+	})
+	.then( (result) => {
+		return Group.findByName.bind(Group)(req.body.name);
+	})
+	.then( (grp) => {
+		return res.json({
+			result: 1,
+			groupData: grp
+		});
+	})
+	.catch( (err) => {
+		return res.json({
+			result: 0,
+			error: err
+		});
+	})
+})
 
 router.post('/delete', (req,res) => {
-
-	if( req.decoded.ID != req.body.master ) return res.json({ result: 0, error: 'YOU_ARE_NOT_MASTER' });
 	
-	return res.json({result: 0, error: 'asd'});
-});
+	Group.findByName(req.body.name)
+	.then( (grp) => {
+		console.log(grp);
+		if( !grp ) return Promise.reject('NOT_EXIST_GROUP');
+		if( req.decoded.ID != grp.master ) return Promise.reject('PERMISSION_DENIED');
+		return Promise.resolve(grp);
+	})
+	.then( (grp) => {
+		return Account.findAndDeleteGroup.bind(Account)(grp);
+	})
+	.then( (result) => {
+		return Group.remove({ name: req.body.name }).exec();
+	})
+	.then( (result) => {
+		return res.json({
+			result: 1,
+			resultData: result
+		});
+	})
+	.catch( (err) => {
+		return res.json({
+			result: 0,
+			error: err
+		});
+	});
+})
 
 router.get('/find/:_id', (req, res) => {
 

@@ -1,5 +1,6 @@
 //middleware about JWT Check
 import JWTcheckMiddleware from '../middlewares/jwtDecode';
+import cors from 'cors';
 
 //import modules;
 import express from 'express';

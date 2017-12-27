@@ -37,34 +37,14 @@ router.post('/update', (req, res) => {
 
 	if( req.body.registrant != req.decoded.ID ) return res.json({result: 0, error: 'YOU_ARE_NOT_REGISTRANT'});
 
-	Schedule.findOne(
-		{_id: req.body._id}
-	)
-	.then( (sche) => {
-		return Promise.all(
-			[
-				Group.findAndDeleteSchedule.bind(Group)(sche),
-				Account.findAndDeleteSchedule.bind(Account)(sche)
-			]
-		);
-	})
-	.then( (result) => {
-		return Schedule.updateSchedule.bind(Schedule)(req.body);
-	})
-	.then( (result) => {
-		return Promise.all(
-			[
-				Group.findAndUpdateSchedule.bind(Group)(req.body),
-				Account.findAndUpdateSchedule.bind(Account)(req.body)
-			]
-		);
-	})
+	Schedule.updateSchedule(req.body)
 	.then( (result) => {
 		return res.json({
 			result: 1
 		});
 	})
 	.catch( (err) => {
+		console.log(err);
 		return res.json({
 			result: 0,
 			error: err

@@ -38,7 +38,7 @@ Account.statics.findOneByUserId = function(userID) {
 
 Account.statics.findAndUpdateSchedule = function(sche) {
 
-	if( sche.is_shared ) {
+	if( sche.is_share ) {
 		sche.users.push(sche.registrant);
 		return this.update(
 			{ ID: { $in: sche.users } },

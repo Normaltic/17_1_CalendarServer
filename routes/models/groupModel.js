@@ -17,7 +17,7 @@ Group.statics.createGroup = function(data) {
 }
 
 Group.statics.deleteGroup = function(grpID) {
-	return this.delete({
+	return this.remove({
 		_id: grpID
 	}).exec();
 }
@@ -56,7 +56,8 @@ Group.statics.findAndUpdateVote = function(vte) {
 	
 	return this.update(
 		{ name: { $in: vte.groups } },
-		{ $push: { votes: vte._id } }
+		{ $push: { votes: vte._id } },
+		{ multi: true }
 	).exec();
 }
 
@@ -64,7 +65,8 @@ Group.statics.findAndDeleteVote = function(vte) {
 
 	return this.update(
 		{ name: { $in: vte.groups } },
-		{ $push: { votes: vte._id } }
+		{ $pull: { votes: vte._id } },
+		{ multi: true }
 	).exec();
 }
 

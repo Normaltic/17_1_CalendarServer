@@ -1,4 +1,5 @@
 import express from 'express';
+import Group from './models/groupModel';
 import Vote from './models/voteModel';
 import Schedule from './models/scheduleModel';
 import Account from './models/accountModel';
@@ -12,8 +13,14 @@ router.post('/create', (req, res) => {
 
 	req.body.registrant = req.decoded.ID;
 
+	if( req.body.place == '' ) req.body.place = "미정";
+
 	Vote.createVote(req.body)
-	.then(Account.findAndUpdateVote.bind(Account))
+	.then( (voteData) => {
+		console.warn(voteData);
+		if( voteData.users.length ) return Account.findAndUpdateVote.bind(Account)(voteData);
+		return Group.findAndUpdateVote.bind(Group)(voteData);
+	})
 	.then( (result) => {
 		return res.json({
 			result: 1
@@ -45,17 +52,25 @@ router.post('/update', (req, res) => {
 	});
 })
 
-router.get('/delete/:voteID', (req, res) => {
+router.post('/delete', (req, res) => {
 
 	Vote.findOne(
-		{ _id: req.params.voteID }
-	).exec()
+		{ _id: req.body.voteID }
+	)
 	.then( (vte) => {
+		console.log(vte);
 		if( !vte ) return Promise.reject('SOMETHING_WRONG');
 		if( vte.registrant != req.decoded.ID ) return Promise.reject('YOU_ARE_NOT_REGISTRANT');
 		return Promise.resolve(vte);
 	})
-	.then(Account.findAndDeleteVote.bind(Account))
+	.then( (vte) => {
+		return Promise.all(
+			[
+				Account.findAndDeleteVote.bind(Account)(vte),
+				Group.findAndDeleteVote.bind(Group)(vte)
+			]
+		);
+	})
 	.then(Vote.deleteVote.bind(Vote)(req.params.voteID))
 	.then( (result) => {
 		return res.json({
@@ -76,10 +91,22 @@ router.get('/getVoteList', (req, res) => {
 	Account.findOneByUserId(req.decoded.ID)
 	.then( (user) => {
 		if( !user ) return Promise.reject('NOT_EXIST_USER');
-		return Promise.resolve(user.votes);
+
+		return Promise.all(
+			[
+				Promise.resolve(user.votes),
+				Group.findByNameList(user.groups)
+			]
+		);
 	})
-	.then(Vote.findByidList.bind(Vote))
+	.then( (resolveData) => {
+		let voteIDList = resolveData[0];
+		for( let grp of resolveData[1] ) voteIDList.push(...grp.votes);
+
+		return Vote.findByidList.bind(Vote)(voteIDList);
+	})
 	.then( (voteList) => {
+		console.log(voteList);
 		return res.json({
 			result: 1,
 			voteList: voteList
@@ -188,8 +215,22 @@ router.post('/ChangeSchedule', (req, res) => {
 	if( req.body.registrant != req.decoded.ID ) return res.json({ result: 0, error: 'YOU_ARE_NOT_REGISTRANT' });
 
 	Schedule.createSchedule(req.body)
-	.then(Account.findAndUpdateSchedule.bind(Account)) 
-	.then(Account.findAndDeleteVote.bind(Account)(req.body))
+	.then( (scheData) => {
+		return Promise.all(
+			[
+				Account.findAndUpdateSchedule.bind(Account)(scheData),
+				Group.findAndUpdateSchedule.bind(Group)(scheData)
+			]
+		);
+	}) 
+	.then( () => {
+		return Promise.all(
+			[
+				Account.findAndDeleteVote.bind(Account)(req.body),
+				Group.findAndDeleteVote.bind(Group)(req.body)
+			]
+		);
+	})
 	.then( (result) => {
 		return res.json({
 			result: 1

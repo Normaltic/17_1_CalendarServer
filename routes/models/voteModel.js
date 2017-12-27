@@ -7,15 +7,22 @@ const Vote = new Schema({
 	title: String,
 	intro: { type: String, default: "" },
 	place: { type: String, default: "미정" },
-	Date: Date,
+	date: Date,
 	is_share: { type: Boolean, default: true },
 	users: { type: [String], default: [] },
+	groups: { type: [String], default: [] },
 	yes: { type: [String], default: [] },
 	no: { type: [String], default: [] },
 	commentWriter: { type: [String], default: [] },
 	commentContent: { type: [String], default: [] },
 	comment: { type: [ {writer: String, comment: String} ], default: [] }
 });
+
+Vote.statics.findOneById = function(vteID) {
+	return this.findOne(
+		{ _id: new mongoose.Types.ObjectId(vteID) }
+	).exec();
+}
 
 Vote.statics.findByidList = function(list) {
 	return this.find(
@@ -36,7 +43,7 @@ Vote.statics.updateVote = function(vte) {
 }
 
 Vote.statics.deleteVote = function(vteid) {
-	return this.delete(
+	return this.remove(
 		{ _id: vteid }
 	).exec();
 }
