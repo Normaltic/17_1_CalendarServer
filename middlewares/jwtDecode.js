@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 
 const JWTdecode = (req, res, next) => {
 
-	const token = req.headers['x-access-token'];
+	const token = req.headers['calendar-token'];
 
 	if( !token ) {
 		return res.status(403).json({
